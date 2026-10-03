@@ -1,0 +1,45 @@
+name: Deploy to AWS EC2
+
+on:
+ push:
+  branches:
+   - main
+
+
+jobs:
+ deploy:
+  run-on:ubuntu-latest
+
+  steps:
+  -name: Deploy application to ec2
+    env:
+     
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER" ${{ secrets.EC2_USER }}
+      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+    run:
+      mkdir -p ~/.shh
+      echo "$EC2_SSH_KEY" > ~/.shh/ec2_key
+      chmod 600 ~/.shh/ec2_key
+
+      ssh-keyscan -H "$EC2_HOST" >> ~/.shh/known_hosts
+
+      ssh -i ~/.shh/ec2_key "$EC2_USER@$EC2_HOST" << 'EOF'
+        cd ~/docker-nginx-portfolio
+        
+	git pull origin main
+
+	docker build -t devops-portfolio .
+
+	docker stop condescending_keldysh || true
+	docker rm condescending_keldysh || true
+
+	docker run -d \
+	  -p 80:80 \
+	  --name devops-portfolio-container \
+	  devops-portfolio
+        EOF
+	
+   
+
